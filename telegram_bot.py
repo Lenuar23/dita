@@ -92,6 +92,9 @@ class TelegramNotifier:
             f"📦 <b>Назва:</b> {item['name']}\n"
         )
 
+        if item.get("page"):
+            msg += f"📄 <b>Сторінка:</b> {item['page']}\n"
+
         if styles_text:
             max_style = max(styles)
             msg += f"🎨 <b>Макс. відкритий стиль:</b> {max_style} (всього: {len(styles)})\n"

@@ -36,7 +36,7 @@ DESIRED_STYLES = [20, 21]
 DESIRED_GEMS = []
 
 # Максимальна ціна в USD (0 = без обмеження)
-MAX_PRICE_USD = 0
+MAX_PRICE_USD = 15
 
 # --- Інтервал перевірки ---
 # Час між перевірками в секундах (не рекомендується менше 60 — Steam може заблокувати)
@@ -44,7 +44,7 @@ CHECK_INTERVAL_SECONDS = 120
 
 # --- Логування ---
 LOG_FILE = "parser.log"
-LOG_LEVEL = "INFO"  # DEBUG, INFO, WARNING, ERROR
+LOG_LEVEL = "DEBUG"  # DEBUG, INFO, WARNING, ERROR
 
 # Кількість результатів з маркету за один запит (макс 100)
 RESULTS_COUNT = 100
@@ -52,4 +52,4 @@ RESULTS_COUNT = 100
 # --- Проксі (опціонально) ---
 # Якщо Steam блокує запити, можна використовувати проксі
 # Формат: "http://user:pass@host:port" або "socks5://user:pass@host:port"
-PROXY = None
+PROXY = os.getenv("PROXY", None)

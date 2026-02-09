@@ -100,29 +100,39 @@ class SteamMarketParser:
             "format": "json",
         }
 
-        try:
-            response = self.session.get(url, params=params, timeout=20)
+        max_retries = 3
+        for attempt in range(max_retries):
+            try:
+                logger.debug(f"📡 Запит сторінки start={start}, спроба {attempt + 1}")
+                response = self.session.get(url, params=params, timeout=20)
 
-            if response.status_code == 429:
-                logger.warning("⚠️ Steam rate limit! Чекаємо 60 секунд...")
-                time.sleep(60)
+                if response.status_code == 429:
+                    wait_time = 60 * (attempt + 1)
+                    logger.warning(f"⚠️ Steam rate limit! Чекаємо {wait_time} секунд... (спроба {attempt + 1}/{max_retries})")
+                    time.sleep(wait_time)
+                    continue
+
+                response.raise_for_status()
+                data = response.json()
+
+                if not data.get("success"):
+                    logger.error(f"❌ Steam API лістингів повернув помилку: {data}")
+                    return None
+
+                return data
+
+            except requests.exceptions.RequestException as e:
+                logger.error(f"❌ Помилка запиту лістингів (спроба {attempt + 1}): {e}")
+                if attempt < max_retries - 1:
+                    time.sleep(10)
+                    continue
                 return None
-
-            response.raise_for_status()
-            data = response.json()
-
-            if not data.get("success"):
-                logger.error("❌ Steam API лістингів повернув помилку")
+            except ValueError as e:
+                logger.error(f"❌ Помилка парсингу JSON лістингів: {e}")
                 return None
-
-            return data
-
-        except requests.exceptions.RequestException as e:
-            logger.error(f"❌ Помилка запиту лістингів: {e}")
-            return None
-        except ValueError as e:
-            logger.error(f"❌ Помилка парсингу JSON лістингів: {e}")
-            return None
+        
+        logger.error("❌ Всі спроби вичерпано")
+        return None
 
     def extract_gems_from_descriptions(self, descriptions: list) -> list[str]:
         """
@@ -274,11 +284,18 @@ class SteamMarketParser:
         while True:
             data = self.get_item_listings_page(item_name, start=start, count=PAGE_SIZE)
             if not data:
+                if total_count is None:
+                    logger.error("❌ Не вдалося отримати першу сторінку лістингів")
+                else:
+                    logger.warning(f"⚠️ Не вдалося отримати сторінку {start // PAGE_SIZE + 1}, пропускаю")
                 break
 
             if total_count is None:
                 total_count = data.get("total_count", 0)
                 logger.info(f"📋 Всього лістингів на маркеті: {total_count}")
+                if total_count == 0:
+                    logger.warning("⚠️ Steam повернув 0 лістингів — можливо предмет не існує або проблема з API")
+                    break
 
             listinginfo = data.get("listinginfo", {})
             assets = data.get("assets", {})
@@ -291,7 +308,7 @@ class SteamMarketParser:
             logger.info(f"📄 Сторінка {page_num}: обробляю {len(listinginfo)} лістингів (з {start})")
 
             page_found = self._process_page_listings(
-                listinginfo, assets, item_name, desired_gems, desired_styles, max_price
+                listinginfo, assets, item_name, desired_gems, desired_styles, max_price, page_num
             )
             found_items.extend(page_found)
 
@@ -311,7 +328,7 @@ class SteamMarketParser:
     def _process_page_listings(self, listinginfo: dict, assets: dict,
                                 item_name: str, desired_gems: list[str] = None,
                                 desired_styles: list[int] = None,
-                                max_price: float = 0) -> list[dict]:
+                                max_price: float = 0, page_num: int = 1) -> list[dict]:
         """Обробляє лістинги однієї сторінки."""
         found_items = []
 
@@ -420,11 +437,13 @@ class SteamMarketParser:
                 "styles": styles,
                 "inspect_link": inspect_link,
                 "image_url": image_url,
+                "page": page_num,
             })
 
             styles_str = ', '.join(str(s) for s in styles) if styles else 'N/A'
             logger.info(
                 f"✅ Знайдено: {actual_name} | {price_str} | "
+                f"Сторінка: {page_num} | "
                 f"Стилі: {styles_str} | "
                 f"Геми: {', '.join(gems) if gems else 'N/A'}"
             )
