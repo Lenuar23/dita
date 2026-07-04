@@ -76,9 +76,9 @@ class TelegramNotifier:
             "price": str,
             "listing_id": str,
             "link": str,
-            "filtered_link": str,  - посилання з фільтром по стилю
             "gems": list[str],
             "styles": list[int],
+            "inspect_link": str (optional),
             "image_url": str (optional),
         }
         """
@@ -105,7 +105,7 @@ class TelegramNotifier:
         msg += (
             f"💰 <b>Ціна:</b> {item['price']}\n"
             "━━━━━━━━━━━━━━━━━━━━\n"
-            f"🔗 <a href=\"{item.get('filtered_link', item['link'])}\">Переглянути на Steam Market</a>"
+            f"🔗 <a href=\"{item['link']}\">Переглянути на маркеті</a>\n"
         )
 
         if item.get("inspect_link"):

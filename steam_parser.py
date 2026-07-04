@@ -427,21 +427,12 @@ class SteamMarketParser:
                 item_name=quote(item_name)
             )
 
-            # Генеруємо фільтроване посилання залежно від найвищого стилю
-            filtered_link = item_link
-            if styles:
-                max_style = max(styles)
-                # Фільтр: шукаємо Onibi без заблокованої версії цього стилю
-                # URL encoded: onibi NOT "20 locked" = onibi+NOT+%2220+locked%22
-                filtered_link = f"https://steamcommunity.com/market/listings/570/Onibi?filter=onibi+NOT+%22{max_style}+locked%22"
-
             found_items.append({
                 "name": actual_name,
                 "price": price_str,
                 "price_value": price_usd,
                 "listing_id": listing_id,
                 "link": item_link,
-                "filtered_link": filtered_link,
                 "gems": gems,
                 "styles": styles,
                 "inspect_link": inspect_link,
